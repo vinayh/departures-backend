@@ -41,6 +41,10 @@ def get_secret_from_file(path) -> str:
         raise
 
 
+TFL_APP_ID = get_secret("TFL_APP_ID")
+TFL_APP_KEY = get_secret("TFL_APP_KEY")
+
+
 Stop = namedtuple("Stop", ["lat", "lon", "id", "name", "modes", "distance"])
 
 Departure = namedtuple(
@@ -73,8 +77,8 @@ def dict_to_departure(res_dict: dict) -> Departure:
 
 def departures_for_stop(stop: Stop) -> list[Departure]:
     params = {
-        "app_id": app_id,
-        "app_key": app_key,
+        "app_id": TFL_APP_ID,
+        "app_key": TFL_APP_KEY,
     }
     res = requests.get(
         ARRIVALS_ENDPOINT.format(stop.id),
@@ -101,48 +105,61 @@ def get_stop_with_departures(
     return departures
 
 
-def get_stops(lat: float, lon: float) -> list[Stop]:
+def get_stops(
+    lat: float,
+    lon: float,
+    radius: int = 1200,
+    stop_types: str = "NaptanMetroStation",
+    categories: str = "none",
+) -> list[Stop]:
     params = {
-        "app_id": app_id,
-        "app_key": app_key,
+        "app_id": TFL_APP_ID,
+        "app_key": TFL_APP_KEY,
         # "useStopPointHierarchy": "true",
         "lat": lat,
         "lon": lon,
         "radius": radius,
-        "stopTypes": stopTypes,
+        "stopTypes": stop_types,
         "categories": categories,
     }
-    res = requests.get(
-        STOPPOINT_ENDPOINT,
-        headers={},  # Check if better to include cookie here?
-        params=params,
-    )
-    res_stops = json.loads(res.text)["stopPoints"]
-    return [dict_to_stop(s) for s in res_stops]
+    print(params)
+    try:
+        res = requests.get(
+            STOPPOINT_ENDPOINT,
+            headers={},  # Check if better to include cookie here?
+            params=params,
+        )
+        res_stops = json.loads(res.text)
+        return [dict_to_stop(s) for s in res_stops["stopPoints"]]
+    except:
+        print(res_stops)
+        raise
 
 
 def print_departures_for_station(stop_with_deps: tuple[Stop, list[Departure]]) -> None:
-    print(f"STATION: {stop_with_deps[0].name} - {stop_with_deps[0].distance:.0f}m away")
+    print(f"{stop_with_deps[0].name} - {stop_with_deps[0].distance:.0f}m away")
     print(
         "\n".join(
             [
-                f"\t{d.time_to_station // 60}min {d.destination}"
+                f"\t{d.time_to_station // 60}min - {d.destination}"
                 for d in stop_with_deps[1]
             ]
         ),
     )
 
 
-# Temp hardcoding of variables
-app_id = get_secret("TFL_APP_ID")
-app_key = get_secret("TFL_APP_KEY")
-# lat, lon = 51.49454, -0.100601  # E&C
-lat, lon = 51.52009, -0.10508  # Farringdon
-radius = 1200
-stopTypes = "NaptanMetroStation"
-# stopTypes = "NaptanMetroStation,NaptanPublicBusCoachTram"
-categories = "none"
+def main():
+    # Temp hardcoding of variables
+    # lat, lon = 51.49454, -0.100601  # E&C
+    lat, lon = 51.52009, -0.10508  # Farringdon
+    radius = 1200
+    stop_types = "NaptanMetroStation"
+    # stopTypes = "NaptanMetroStation,NaptanPublicBusCoachTram"
+    stops = get_stops(lat, lon, radius=radius, stop_types=stop_types)
+    stops_with_departures = get_stop_with_departures(stops)
+    for s in stops_with_departures:
+        print_departures_for_station(s)
 
-stops = get_stops(lat, lon)
-stops_with_departures = get_stop_with_departures(stops)
-[print_departures_for_station(s) for s in stops_with_departures]
+
+if __name__ == "__main__":
+    main()
