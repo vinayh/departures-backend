@@ -1,7 +1,8 @@
-from flask import Flask, request
+from json import dumps
+from flask import Flask, Response, request
 from werkzeug.exceptions import abort
 
-from helpers import get_stops, get_stop_with_departures
+from helpers import get_stops, get_departures_for_stops
 
 app = Flask(__name__)
 
@@ -23,7 +24,13 @@ def nearest():
     if lat is None or lon is None:
         abort(404)
     stops = get_stops(lat, lon, radius=1200)
-    return get_stop_with_departures(stops)
+    departures_tuple_list = get_departures_for_stops(stops)
+    # departures_dicts = dumps
+    resp = Response(dumps(departures_tuple_list))
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "GET"
+    resp.headers["Access-Control-Allow-Header"] = "*"
+    return resp
 
 
 if __name__ == "__main__":

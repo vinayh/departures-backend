@@ -48,8 +48,23 @@ TFL_APP_KEY = get_secret("TFL_APP_KEY")
 Stop = namedtuple("Stop", ["lat", "lon", "id", "name", "modes", "distance"])
 
 Departure = namedtuple(
-    "Departure", ["line", "mode", "destination", "time_to_station", "arrival_time"]
+    "Departure",
+    ["id", "line", "mode", "destination", "time_to_station", "arrival_time"],
 )
+
+
+def stop_to_dict(stop: Stop) -> dict:
+    return {"lat": stop.lat, "lon": stop.lon, "id": stop.id, "name": stop.name}
+
+
+def dep_to_dict(dep: Departure) -> dict:
+    return {
+        "id": dep.id,
+        "line": dep.line,
+        "mode": dep.mode,
+        "destination": dep.destination,
+        "arrival_time": dep.arrival_time.isoformat(),
+    }
 
 
 def dict_to_stop(res_dict: dict) -> Stop:
@@ -65,6 +80,7 @@ def dict_to_stop(res_dict: dict) -> Stop:
 
 def dict_to_departure(res_dict: dict) -> Departure:
     return Departure(
+        id=res_dict["id"],
         line=res_dict["lineId"],
         mode=res_dict["modeName"],
         destination=res_dict["destinationName"]
@@ -90,9 +106,9 @@ def departures_for_stop(stop: Stop) -> list[Departure]:
     # return [dict_to_departure(d) for d in res_deps]
 
 
-def get_stop_with_departures(
+def get_departures_for_stops(
     stops_sorted: list[Stop], max_dep_per_stop: int = 5, max_stops: int = 5
-) -> list[tuple[Stop, list[Departure]]]:
+) -> list[tuple[dict, list[dict]]]:
     departures = []
     for s in stops_sorted:
         if len(departures) > max_stops - 1:
@@ -101,14 +117,19 @@ def get_stop_with_departures(
             departures_for_stop(s), key=lambda d: d.time_to_station
         )
         if len(deps_for_stop_s) > 0:
-            departures.append((s, deps_for_stop_s[:max_dep_per_stop]))
+            departures.append(
+                (
+                    stop_to_dict(s),
+                    [dep_to_dict(d) for d in deps_for_stop_s[:max_dep_per_stop]],
+                )
+            )
     return departures
 
 
 def get_stops(
     lat: float,
     lon: float,
-    radius: int = 1200,
+    radius: int = 3000,
     stop_types: str = "NaptanMetroStation",
     categories: str = "none",
 ) -> list[Stop]:
@@ -156,7 +177,7 @@ def main():
     stop_types = "NaptanMetroStation"
     # stopTypes = "NaptanMetroStation,NaptanPublicBusCoachTram"
     stops = get_stops(lat, lon, radius=radius, stop_types=stop_types)
-    stops_with_departures = get_stop_with_departures(stops)
+    stops_with_departures = get_departures_for_stops(stops)
     for s in stops_with_departures:
         print_departures_for_station(s)
 
