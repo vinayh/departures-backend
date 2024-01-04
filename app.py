@@ -7,11 +7,6 @@ from helpers import get_stops, get_departures_for_stops
 app = Flask(__name__)
 
 
-@app.route("/")
-def hello_world():  # put application's code here
-    return "Hello World!"
-
-
 @app.route("/nearest")
 def nearest():
     """
@@ -20,10 +15,11 @@ def nearest():
     - Return next departures from nearest stops - DONE
     - Optional: if user profile exists, filter/sort by preferences - TODO
     """
-    lat, lon = request.args.get("lat"), request.args.get("lon")
-    if lat is None or lon is None:
+    lat, lng = request.args.get("lat"), request.args.get("lng")
+    if lat is None or lng is None:
         abort(404)
-    stops = get_stops(lat, lon, radius=1200)
+    stop_types = "NaptanMetroStation,NaptanRailStation"
+    stops = get_stops(lat, lng, radius=2000, stop_types=stop_types)
     departures_tuple_list = get_departures_for_stops(stops)
     # departures_dicts = dumps
     resp = Response(dumps(departures_tuple_list))

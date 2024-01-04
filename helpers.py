@@ -23,7 +23,7 @@ def get_secret(name: str) -> str:
     env_name = os.getenv("DEPARTURES_ENV")
     if env_name == "RENDER":
         return get_secret_from_file(SECRETS_TO_PATHS[name].relative_to(".secrets"))
-    elif env_name == "FLY":
+    elif env_name == "FLY" or env_name == "AZURE_FUNCTION":
         if name in os.environ:
             return os.getenv(name)
         else:
@@ -128,7 +128,7 @@ def get_departures_for_stops(
 
 def get_stops(
     lat: float,
-    lon: float,
+    lng: float,
     radius: int = 3000,
     stop_types: str = "NaptanMetroStation",
     categories: str = "none",
@@ -138,12 +138,12 @@ def get_stops(
         "app_key": TFL_APP_KEY,
         # "useStopPointHierarchy": "true",
         "lat": lat,
-        "lon": lon,
+        "lon": lng,
         "radius": radius,
         "stopTypes": stop_types,
         "categories": categories,
     }
-    print(params)
+    print("Request params:", params)
     try:
         res = requests.get(
             STOPPOINT_ENDPOINT,
@@ -171,12 +171,12 @@ def print_departures_for_station(stop_with_deps: tuple[Stop, list[Departure]]) -
 
 def main():
     # Temp hardcoding of variables
-    # lat, lon = 51.49454, -0.100601  # E&C
-    lat, lon = 51.52009, -0.10508  # Farringdon
+    # lat, lng = 51.49454, -0.100601  # E&C
+    lat, lng = 51.52009, -0.10508  # Farringdon
     radius = 1200
-    stop_types = "NaptanMetroStation"
+    stop_types = "NaptanMetroStation,NaptanRailStation"
     # stopTypes = "NaptanMetroStation,NaptanPublicBusCoachTram"
-    stops = get_stops(lat, lon, radius=radius, stop_types=stop_types)
+    stops = get_stops(lat, lng, radius=radius, stop_types=stop_types)
     stops_with_departures = get_departures_for_stops(stops)
     for s in stops_with_departures:
         print_departures_for_station(s)
