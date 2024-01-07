@@ -5,6 +5,7 @@ import requests
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
+from typing import Union
 
 STOPPOINT_ENDPOINT = "https://api.tfl.gov.uk/StopPoint"
 ARRIVALS_ENDPOINT = "https://api.tfl.gov.uk/StopPoint/{}/Arrivals"
@@ -108,7 +109,7 @@ def departures_for_stop(stop: Stop) -> list[Departure]:
 
 def get_departures_for_stops(
     stops_sorted: list[Stop], max_dep_per_stop: int = 5, max_stops: int = 5
-) -> list[tuple[dict, list[dict]]]:
+) -> list[dict[str, Union[dict, list[dict]]]]:
     departures = []
     for s in stops_sorted:
         if len(departures) > max_stops - 1:
@@ -118,10 +119,10 @@ def get_departures_for_stops(
         )
         if len(deps_for_stop_s) > 0:
             departures.append(
-                (
-                    stop_to_dict(s),
-                    [dep_to_dict(d) for d in deps_for_stop_s[:max_dep_per_stop]],
-                )
+                {
+                    "station": stop_to_dict(s),
+                    "departures": [dep_to_dict(d) for d in deps_for_stop_s[:max_dep_per_stop]],
+                }
             )
     return departures
 
@@ -157,13 +158,16 @@ def get_stops(
         raise
 
 
-def print_departures_for_station(stop_with_deps: tuple[Stop, list[Departure]]) -> None:
-    print(f"{stop_with_deps[0].name} - {stop_with_deps[0].distance:.0f}m away")
+def print_departures_for_station(stop_with_deps: dict[str, Union[dict, list[dict]]]) -> None:
+    # TODO: Not yet fully updated to work with stop/dest dicts
+    print(stop_with_deps['station'].keys())
+    # print(f"{stop_with_deps['station']['name']} - {stop_with_deps['station']['distance']:.0f}m away")
+    print(stop_with_deps['station']['name'])
     print(
         "\n".join(
             [
-                f"\t{d.time_to_station // 60}min - {d.destination}"
-                for d in stop_with_deps[1]
+                f"\t{d['arrival_time'] // 60}min - {d['destination']}" 
+                for d in stop_with_deps["departures"]
             ]
         ),
     )
@@ -178,8 +182,8 @@ def main():
     # stopTypes = "NaptanMetroStation,NaptanPublicBusCoachTram"
     stops = get_stops(lat, lng, radius=radius, stop_types=stop_types)
     stops_with_departures = get_departures_for_stops(stops)
-    for s in stops_with_departures:
-        print_departures_for_station(s)
+    # for s in stops_with_departures:
+    #     print_departures_for_station(s)
 
 
 if __name__ == "__main__":
