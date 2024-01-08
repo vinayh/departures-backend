@@ -108,13 +108,13 @@ async def departures_for_stop(stop: Stop, max_dep_per_stop: int) -> list[dict]:
 def get_departures_for_stops(
     stops_sorted: list[Stop], max_dep_per_stop: int = 5, max_stops: int = 6
 ) -> list[dict[str, Union[dict, list[dict]]]]:
-    stops = stops_sorted[:max_stops]
     async def async_get_departures():
         coroutines = [departures_for_stop(s, max_dep_per_stop) for s in stops]
         return await asyncio.gather(*coroutines)
     
+    stops = stops_sorted[:max_stops]
     results: list[list[dict]] = asyncio.run(async_get_departures())
-    return [{"station": stops_sorted[i]._asdict(), "departures": results[i]} for i in range(len(stops))]
+    return [{"station": stops_sorted[i]._asdict(), "departures": results[i]} for i in range(len(stops)) if len(results[i]) > 0]
 
 
 def get_stops(
@@ -122,6 +122,7 @@ def get_stops(
     lng: str,
     radius: int = 3000,
     stop_types: str = "NaptanMetroStation,NaptanRailStation",
+    modes: str = "tube,dlr,overground,bus",
     categories: str = "none",
 ) -> list[Stop]:
     params = {
@@ -133,6 +134,7 @@ def get_stops(
         "radius": radius,
         "stopTypes": stop_types,
         "categories": categories,
+        "modes": modes,
     }
     res_stops = None
     try:
