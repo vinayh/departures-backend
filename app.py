@@ -18,11 +18,14 @@ def nearest():
     lat, lng = request.args.get("lat"), request.args.get("lng")
     if lat is None or lng is None:
         abort(404)
-    stop_types = "NaptanMetroStation,NaptanRailStation"
+    stop_types = (
+        request.args.get("stopTypes")
+        if "stopTypes" in request.args
+        else "NaptanMetroStation,NaptanRailStation"
+    )
     stops = get_stops(lat, lng, radius=2000, stop_types=stop_types)
-    departures_tuple_list = get_departures_for_stops(stops)
-    # departures_dicts = dumps
-    resp = Response(dumps(departures_tuple_list))
+    stops_deps = get_departures_for_stops(stops)
+    resp = Response(dumps(stops_deps))
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Methods"] = "GET"
     resp.headers["Access-Control-Allow-Header"] = "*"
