@@ -144,23 +144,27 @@ def get_stops(
             params=params,
         )
         res_stops = json.loads(res.text)
-        print(res_stops)
         return [dict_to_stop(s) for s in res_stops["stopPoints"]]
     except:
         logging.error(res_stops)
         raise
 
+# TODO: Not yet fully updated to work with stop/dest dicts
+# def print_departures_for_station(stop_with_deps: dict[str, Union[dict, list[dict]]]) -> None:
+    
+#     print(stop_with_deps['station'].keys())
+#     # print(f"{stop_with_deps['station']['name']} - {stop_with_deps['station']['distance']:.0f}m away")
+#     print(stop_with_deps['station']['name'])
+#     print(
+#         "\n".join(
+#             [
+#                 f"\t{d['arrival_time'] // 60}min - {d['destination']}" 
+#                 for d in stop_with_deps["departures"]
+#             ]
+#         ),
+#     )
 
-def print_departures_for_station(stop_with_deps: dict[str, Union[dict, list[dict]]]) -> None:
-    # TODO: Not yet fully updated to work with stop/dest dicts
-    print(stop_with_deps['station'].keys())
-    # print(f"{stop_with_deps['station']['name']} - {stop_with_deps['station']['distance']:.0f}m away")
-    print(stop_with_deps['station']['name'])
-    print(
-        "\n".join(
-            [
-                f"\t{d['arrival_time'] // 60}min - {d['destination']}" 
-                for d in stop_with_deps["departures"]
-            ]
-        ),
-    )
+def nearest_departures(lat, lng, stop_types="NaptanMetroStation,NaptanRailStation") -> list[dict[str, Union[dict, list[dict]]]]:
+    stop_types = stop_types if stop_types is not None else "NaptanMetroStation,NaptanRailStation"
+    stops = get_stops(lat, lng, radius=2000, stop_types=stop_types)
+    return get_departures_for_stops(stops)

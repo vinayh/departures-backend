@@ -2,7 +2,7 @@ from json import dumps
 from flask import Flask, Response, request
 from werkzeug.exceptions import abort
 
-from helpers import get_stops, get_departures_for_stops
+from helpers import nearest_departures
 
 app = Flask(__name__)
 
@@ -16,16 +16,11 @@ def nearest():
     - Optional: if user profile exists, filter/sort by preferences - TODO
     """
     lat, lng = request.args.get("lat"), request.args.get("lng")
+    stop_types = request.args.get("stopTypes")
     if lat is None or lng is None:
         abort(404)
-    stop_types = (
-        request.args.get("stopTypes")
-        if "stopTypes" in request.args
-        else "NaptanMetroStation,NaptanRailStation"
-    )
-    stops = get_stops(lat, lng, radius=2000, stop_types=stop_types)
-    stops_deps = get_departures_for_stops(stops)
-    resp = Response(dumps(stops_deps))
+
+    resp = Response(dumps(nearest_departures(lat, lng, stop_types=stop_types)))
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Methods"] = "GET"
     resp.headers["Access-Control-Allow-Header"] = "*"
