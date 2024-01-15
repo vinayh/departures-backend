@@ -1,8 +1,7 @@
-from json import dumps
 from flask import Flask, Response, request
 from werkzeug.exceptions import abort
 
-from helpers import nearest_departures
+from helpers import nearest_departures_json
 
 app = Flask(__name__)
 
@@ -20,7 +19,7 @@ def nearest():
     if lat is None or lng is None:
         abort(404)
 
-    resp = Response(dumps(nearest_departures(lat, lng, stop_types=stop_types)))
+    resp = Response(nearest_departures_json(lat, lng, stop_types=stop_types))
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Methods"] = "GET"
     resp.headers["Access-Control-Allow-Header"] = "*"

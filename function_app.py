@@ -1,8 +1,7 @@
-from json import dumps
 import azure.functions as func
 import logging
 
-from helpers import nearest_departures
+from helpers import nearest_departures_json
 
 app = func.FunctionApp()
 
@@ -23,7 +22,7 @@ def nearest(req: func.HttpRequest) -> func.HttpResponse:
         "Access-Control-Allow-Header": "*",
     }
     
-    return func.HttpResponse(dumps(nearest_departures(lat, lng, stop_types=stop_types)), headers=headers)
+    return func.HttpResponse(nearest_departures_json(lat, lng, stop_types=stop_types), headers=headers)
 
 
 if __name__ == "__main__":
