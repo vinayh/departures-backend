@@ -73,9 +73,9 @@ class Stop:
                 print("Status", res.status)
                 data = await res.json()
                 return sorted(
-                    [Departure(d) for d in data[:max_departures]],
+                    [Departure(d) for d in data],
                     key=lambda x: x.time_to_station,
-                )
+                )[:max_departures]
 
 @dataclass_json
 @dataclass
@@ -102,7 +102,7 @@ class StationDepartures:
 
 
 def departures_for_all_stops(
-    stops_sorted: list[Stop], max_dep_per_stop: int = 12, max_stops: int = 6
+    stops_sorted: list[Stop], max_dep_per_stop: int = 15, max_stops: int = 6
 ) -> list[StationDepartures]:
     async def helper():
         async with asyncio.TaskGroup() as tg:
@@ -118,7 +118,7 @@ def nearest_stops(
     lng: str,
     radius: int = 3000,
     stop_types: str = "NaptanMetroStation,NaptanRailStation",
-    modes: str = "tube,dlr,overground,bus",
+    modes: str = "tube,dlr,overground,elizabeth-line,bus",
     categories: str = "none",
 ) -> list[Stop]:
     
