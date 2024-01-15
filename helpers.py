@@ -63,7 +63,7 @@ class Stop:
         self.modes = res_dict["modes"]
         self.distance = res_dict["distance"]
 
-    async def departures(self, max_departures: int = 12):
+    async def departures(self, max_departures):
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 ARRIVALS_ENDPOINT.format(self.id),
@@ -102,7 +102,7 @@ class StationDepartures:
 
 
 def departures_for_all_stops(
-    stops_sorted: list[Stop], max_dep_per_stop: int = 15, max_stops: int = 6
+    stops_sorted: list[Stop], max_dep_per_stop: int = 25, max_stops: int = 6
 ) -> list[StationDepartures]:
     async def helper():
         async with asyncio.TaskGroup() as tg:
