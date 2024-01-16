@@ -100,6 +100,12 @@ class StationDepartures:
     station: Stop
     departures: list[Departure]
 
+@dataclass_json
+@dataclass
+class Response:
+    stnsDeps: list[StationDepartures]
+    lat: float
+    lng: float
 
 def departures_for_all_stops(
     stops_sorted: list[Stop], max_dep_per_stop: int = 25, max_stops: int = 6
@@ -169,4 +175,5 @@ def nearest_departures_json(
         stop_types if stop_types is not None else "NaptanMetroStation,NaptanRailStation"
     )
     stops = nearest_stops(lat, lng, radius=2000, stop_types=stop_types)
-    return StationDepartures.schema().dumps(departures_for_all_stops(stops), many=True)
+    stnsDeps = departures_for_all_stops(stops)
+    return Response.schema().dumps(Response(stnsDeps=stnsDeps, lat=lat, lng=lng))

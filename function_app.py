@@ -17,12 +17,15 @@ def nearest(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse("Lat and lng not provided.", status_code=400)
     
     headers = {
+        "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Header": "*",
     }
     
-    return func.HttpResponse(nearest_departures_json(lat, lng, stop_types=stop_types), headers=headers)
+    return func.HttpResponse(nearest_departures_json(lat, lng, stop_types=stop_types),
+                             headers=headers,
+                             mimetype="application/json")
 
 
 if __name__ == "__main__":

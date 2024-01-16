@@ -19,7 +19,8 @@ def nearest():
     if lat is None or lng is None:
         abort(404)
 
-    resp = Response(nearest_departures_json(lat, lng, stop_types=stop_types))
+    resp = Response(nearest_departures_json(lat, lng, stop_types=stop_types), mimetype='application/json')
+    resp.headers['Content-Type'] = 'application/json'
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Methods"] = "GET"
     resp.headers["Access-Control-Allow-Header"] = "*"
