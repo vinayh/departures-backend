@@ -1,16 +1,9 @@
 import os
 import json
-import asyncio
-import aiohttp
-import logging
+import pickle
 import requests
 
-from dataclasses import dataclass
-from dataclasses_json import dataclass_json
 from pathlib import Path
-
-STOPPOINT_ENDPOINT = "https://api.tfl.gov.uk/StopPoint"
-ARRIVALS_ENDPOINT = "https://api.tfl.gov.uk/StopPoint/{}/Arrivals"
 
 SECRETS_TO_PATHS = {
     "FLASK_SECRET_KEY": Path(".secrets/flask_secret_key"),
@@ -45,135 +38,99 @@ API_PARAMS = {
     "app_key": get_secret("TFL_APP_KEY"),
 }
 
-@dataclass_json
-@dataclass
-class Stop:
+STOPPOINT_MODE_ENDPOINT = "https://api.tfl.gov.uk/StopPoint/Mode"
+STOPPOINT_MODES = "dlr,elizabeth-line,overground,tram,tube"
+CACHED_STOPS_PATH = "data/metro_rail_stops.pkl"
+
+class CachedLine:
+    id: str
+    name: str
+
+    def __init__(self, res_dict: dict):
+        self.id = res_dict["id"]
+        self.name = res_dict["name"]
+
+
+class CachedStop:
     id: str
     lat: float
     lon: float
     name: str
-    modes: str
-    distance: float
+    stop_type: str
+    naptan_id: str
+    modes: list[str]
+    lines: list[CachedLine]
 
     def __init__(self, res_dict: dict):
+        self.id = res_dict["id"]
         self.lat = res_dict["lat"]
         self.lon = res_dict["lon"]
-        self.id = res_dict["id"]
         self.name = res_dict["commonName"]
+        self.stop_type = res_dict["stopType"]
+        self.naptan_id = res_dict["naptanId"]
         self.modes = res_dict["modes"]
-        self.distance = res_dict["distance"]
-
-    async def departures(self, max_departures):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                ARRIVALS_ENDPOINT.format(self.id),
-                headers={},  # Check about cookie
-                params=API_PARAMS,
-            ) as res:
-                print("Status", res.status)
-                data = await res.json()
-                return sorted(
-                    [Departure(d) for d in data],
-                    key=lambda x: x.time_to_station,
-                )[:max_departures]
-
-@dataclass_json
-@dataclass
-class Departure:
-    id: str
-    line: str
-    mode: str
-    destination: str
-    arrival_time: str
-
-    def __init__(self, res_dict: dict):
-        self.id = res_dict["id"]
-        self.line = res_dict["lineId"]
-        self.mode = res_dict["modeName"]
-        self.destination = res_dict["destinationName"] if "destinationName" in res_dict else "[Unknown]"
-        self.time_to_station = res_dict["timeToStation"]
-        self.arrival_time = res_dict["expectedArrival"]
-
-@dataclass_json
-@dataclass
-class StationDepartures:
-    station: Stop
-    departures: list[Departure]
-
-@dataclass_json
-@dataclass
-class Response:
-    stnsDeps: list[StationDepartures]
-    lat: float
-    lng: float
-
-def departures_for_all_stops(
-    stops_sorted: list[Stop], max_dep_per_stop: int = 25, max_stops: int = 6
-) -> list[StationDepartures]:
-    async def helper():
-        async with asyncio.TaskGroup() as tg:
-            tasks = [tg.create_task(s.departures(max_dep_per_stop)) for s in stops_sorted[:max_stops]]
-        return [t.result() for t in tasks]
-
-    results: list[list[Departure]] = asyncio.run(helper())
-    return [StationDepartures(station=stops_sorted[i], departures=results[i]) for i in range(len(results)) if len(results[i]) > 0]
+        self.lines = [CachedLine(line) for line in res_dict["lines"]]
 
 
-def nearest_stops(
-    lat: str,
-    lng: str,
-    radius: int = 3000,
-    stop_types: str = "NaptanMetroStation,NaptanRailStation",
-    modes: str = "tube,dlr,overground,elizabeth-line,bus",
-    categories: str = "none",
-) -> list[Stop]:
-    
-    params = {
-        # "useStopPointHierarchy": "true",
-        "lat": lat,
-        "lon": lng,
-        "radius": radius,
-        "stopTypes": stop_types,
-        "categories": categories,
-        "modes": modes,
-    }
-    params.update(API_PARAMS)
-
+def download_all_stops():
+    endpoint = f"{STOPPOINT_MODE_ENDPOINT}/{STOPPOINT_MODES}"
     try:
         res = requests.get(
-            STOPPOINT_ENDPOINT,
+            endpoint,
             headers={},  # TODO: Check if better to include cookie here?
-            params=params,
+            params=API_PARAMS,
         )
-        res_stops = json.loads(res.text)
-        return [Stop(s) for s in res_stops["stopPoints"]]
+        print(f"Got response, status {res.status_code}")
+        if not res.ok:
+            raise Exception(f"Response status {res.status_code}")
+        with open("all_stops_2024-01-18.json", mode="wt") as f:
+            f.write(res.text)
     except Exception as e:
-        logging.error(e)
+        print.error(e)
         raise
+    print("Saved JSON response to file")
 
 
-# TODO: Not yet fully updated to work with stop/dest dicts
-# def print_departures_for_station(stop_with_deps: dict[str, Union[dict, list[dict]]]) -> None:
+def read_pickle_all_stops(filenames: list[str]) -> list[CachedStop]:
+    all_stops = []
+    for file in filenames:
+        try:
+            with open(file, mode="rt") as f:
+                stops_json = f.read()
+            print(f"Read JSON from file {file}")
+            res_stops = json.loads(stops_json)
+            all_stops += [CachedStop(s) for s in res_stops["stopPoints"]]
+        except Exception as e:
+            print.error(e)
+            raise
+    with open("all_stops.pkl", mode="wb") as f:
+        pickle.dump(all_stops, f)
+        print("Saved all stops pickle to file")
+        return all_stops
 
-#     print(stop_with_deps['station'].keys())
-#     # print(f"{stop_with_deps['station']['name']} - {stop_with_deps['station']['distance']:.0f}m away")
-#     print(stop_with_deps['station']['name'])
-#     print(
-#         "\n".join(
-#             [
-#                 f"\t{d['arrival_time'] // 60}min - {d['destination']}"
-#                 for d in stop_with_deps["departures"]
-#             ]
-#         ),
-#     )
 
+def pickle_metro_rail_stops(all_stops: list[CachedStop]) -> list[CachedStop]:
+    metro_rail_stops = [
+        x
+        for x in all_stops
+        if x.stop_type == "NaptanMetroStation" or x.stop_type == "NaptanRailStation"
+    ]
+    with open(CACHED_STOPS_PATH, mode="wb") as f:
+        pickle.dump(metro_rail_stops, f)
+        print("Saved metro/rail stops pickle to file")
+        return metro_rail_stops
 
-def nearest_departures_json(
-    lat, lng, stop_types="NaptanMetroStation,NaptanRailStation"
-) -> str:
-    stop_types = (
-        stop_types if stop_types is not None else "NaptanMetroStation,NaptanRailStation"
-    )
-    stops = nearest_stops(lat, lng, radius=2000, stop_types=stop_types)
-    stnsDeps = departures_for_all_stops(stops)
-    return Response.schema().dumps(Response(stnsDeps=stnsDeps, lat=lat, lng=lng))
+def load_cached_stops() -> list[CachedStop]:
+    with open(CACHED_STOPS_PATH, mode="rb") as f:
+        cached_stops = pickle.load(f)
+    return cached_stops
+
+if __name__ == "__main__":
+    # download_all_stops()
+    filenames = [
+        "data/all_stops_2024-01-18_page_1.json",
+        "data/all_stops_2024-01-18_page_2.json",
+        "data/all_stops_2024-01-18_page_3.json",
+    ]
+    all_stops = read_pickle_all_stops(filenames)
+    metro_rail_stops = pickle_metro_rail_stops(all_stops)

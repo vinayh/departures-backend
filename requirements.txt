@@ -7,3 +7,4 @@ requests
 asyncio
 aiohttp
 dataclasses_json
+haversine

@@ -1,7 +1,7 @@
 from flask import Flask, Response, request
 from werkzeug.exceptions import abort
 
-from helpers import nearest_departures_json
+from nearest import nearest_departures_json
 
 app = Flask(__name__)
 

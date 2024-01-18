@@ -1,7 +1,7 @@
 import azure.functions as func
 import logging
 
-from helpers import nearest_departures_json
+from nearest import nearest_departures_json
 
 app = func.FunctionApp()
 
