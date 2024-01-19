@@ -120,10 +120,10 @@ def pickle_metro_rail_stops(all_stops: list[CachedStop]) -> list[CachedStop]:
         print("Saved metro/rail stops pickle to file")
         return metro_rail_stops
 
-def load_cached_stops() -> list[CachedStop]:
+def load_cached_stops(stop_types_list: list[str]) -> list[CachedStop]:
     with open(CACHED_STOPS_PATH, mode="rb") as f:
         cached_stops = pickle.load(f)
-    return cached_stops
+    return [c for c in cached_stops if c.stop_type in stop_types_list]
 
 if __name__ == "__main__":
     # download_all_stops()

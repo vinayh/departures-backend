@@ -12,9 +12,10 @@ def nearest(req: func.HttpRequest) -> func.HttpResponse:
 
     lat, lng = req.params.get("lat"), req.params.get("lng")
     stop_types = req.params.get("stopTypes")
+    modes = req.params.get("modes")
 
     if lat is None or lng is None:
-        return func.HttpResponse("Lat and lng not provided.", status_code=400)
+        return func.HttpResponse("Latitude or longitude not provided.", status_code=400)
     
     headers = {
         "Content-Type": "application/json",
@@ -23,7 +24,7 @@ def nearest(req: func.HttpRequest) -> func.HttpResponse:
         "Access-Control-Allow-Header": "*",
     }
     
-    return func.HttpResponse(nearest_departures_json(lat, lng, stop_types=stop_types),
+    return func.HttpResponse(nearest_departures_json(lat, lng, stop_types, modes),
                              headers=headers,
                              mimetype="application/json")
 

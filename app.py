@@ -15,11 +15,12 @@ def nearest():
     - Optional: if user profile exists, filter/sort by preferences - TODO
     """
     lat, lng = request.args.get("lat"), request.args.get("lng")
-    stop_types = request.args.get("stopTypes")
+    stop_types = request.args.get("stopTypes") # Optional
+    modes = request.args.get("modes") # Optional
     if lat is None or lng is None:
         abort(404)
 
-    resp = Response(nearest_departures_json(lat, lng, stop_types=stop_types), mimetype='application/json')
+    resp = Response(nearest_departures_json(lat, lng, stop_types, modes), mimetype='application/json')
     resp.headers['Content-Type'] = 'application/json'
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Methods"] = "GET"
