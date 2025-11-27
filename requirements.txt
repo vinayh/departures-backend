@@ -2,9 +2,8 @@
 # The Python Worker is managed by Azure Functions platform
 # Manually managing azure-functions-worker may cause unexpected issues
 
-azure-functions
-requests
-asyncio
-aiohttp
-dataclasses_json
-haversine
+flask>=3.1,<4
+requests>=2.32,<3
+aiohttp>=3.9,<4
+dataclasses-json>=0.6.7,<0.7
+haversine>=2.8,<3

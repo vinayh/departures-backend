@@ -1,0 +1,14 @@
+[project]
+name = "departures-backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "aiohttp>=3.9,<4",
+    "azure-functions>=1.21.3,<2",
+    "dataclasses-json>=0.6.7,<0.7",
+    "flask>=3.1,<4",
+    "haversine>=2.8,<3",
+    "requests>=2.32,<3",
+]
